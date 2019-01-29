@@ -172,12 +172,22 @@ get_variables_under_node <- function(xml_dat, node) {
 }
 ```
 
+```{r}
+# test the function get_variables_under_node()
+get_variables_under_node(dat, "trajectory")
+```
 
 ### functions `how_many_children`, `have_children`
 
 We could check if the nodes under `trajectory` have children.
 
 ```{r function-how-many-children}
+#' How many children does a parent node have
+#' 
+#' Returns a character vector with the name of the vector and the node count
+#' @param xml_dat a XML document
+#' @param node a node of the form parent_node\child_node
+#'
 how_many_children <- function(xml_dat, node) {
   vars_vector <- vector("integer")
   var_names <- get_variables_under_node(xml_dat, node)
