@@ -92,6 +92,7 @@ tail(all_nodes, 25)
 ```
 
 ## `trajectorys` root node
+This is the parent of `trajectory` node.
 
 ```{r}
 # attributes for the root node
@@ -101,7 +102,7 @@ xml_name(trajectorys)
 xml_siblings(trajectorys)    # no siblings because it is the root
 ```
 
-## `trajectory` node
+## The `trajectory` node
 
 ### `trajectory` summary
 
@@ -138,12 +139,15 @@ If we know by specification the a node does not have children then we could manu
 
 ```{r}
 # name of the orphan nodes
-orphan_vars <- c(1:14)   # indices
+orphan_vars <- c(1:14)        # indices are being set manually.
 
 # the first 14 children of trajectory
-vars14_names <- xml_name(xml_children(xml_find_first(dat, "//trajectory")))[orphan_vars]
+vars14_names <- xml_name(xml_children(xml_find_first(dat,
+                                                     "//trajectory")))[orphan_vars]
 vars14_names
 ```
+
+> Later we will find a better way of getting the nodes with no dependents.
 
 ```{r}
 # get all the nodes under the root
@@ -152,6 +156,7 @@ xml_children(dat) %>%     # trajectory
     xml_name()            # names of the variables only
 ```
 
+### function `get_variables_under_node()`
 
 ```{r function-get_variables_under_node}
 #' Get the names of variables under a node
@@ -243,8 +248,7 @@ have_no_children(dat, "trajectory")
 names(have_no_children(dat, "trajectory"))
 ```
 
-
-## `//trajectory/trajectoryStation`
+## Nodes under `//trajectory/trajectoryStation`
 
 ```{r}
 # names of the children for "trajectoryStation"
