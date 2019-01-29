@@ -153,9 +153,16 @@ xml_children(dat) %>%     # trajectory
 ```
 
 
-```{r}
-# TODO: this function just moved from below. justify it here and document
-# get the names of variables under a node
+```{r function-get_variables_under_node}
+#' Get the names of variables under a node
+#'
+#' @param xml_dat a XML document
+#' @param node a node of the form parent_node\child_node
+#'
+#' @return a character vector with the names of the variables
+#' @export
+#'
+#' @examples
 get_variables_under_node <- function(xml_dat, node) {
     xpath <- paste("//", node)
     xml_find_all(xml_dat, xpath) %>% 
