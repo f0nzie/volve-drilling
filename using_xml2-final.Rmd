@@ -1,6 +1,12 @@
 ---
-title: "R Notebook"
-output: html_notebook
+title: "WITSML Volve - Final"
+output:
+  html_document: 
+    highlight: pygments
+  html_notebook:
+    code_folding: none
+    highlight: haddock
+    theme: united
 ---
 
 ```{r setup, include = FALSE, error=TRUE, message=FALSE, warning=FALSE}
