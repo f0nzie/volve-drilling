@@ -1,0 +1,55 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+# list folders recursively
+list.dirs("./witsml", recursive = TRUE, full.names = TRUE)
+```
+
+```{r}
+# list files
+
+all_files <- list.files("./witsml", recursive = TRUE, full.names = TRUE, 
+                        include.dirs = TRUE)
+
+all_files_xml <- list.files("./witsml", recursive = TRUE, full.names = TRUE, 
+                        include.dirs = TRUE, pattern = "*.xml")
+```
+
+```{r}
+# indices in R start at 1, not zero as in Python
+all_files_xml[1:5]
+```
+
+```{r}
+library(flatxml)
+
+file_bha_1 <- all_files_xml[3]
+
+file.exists(file_bha_1)
+df <- flatxml::fxml_importXMLFlat(file_bha_1)
+df
+```
+
+```{r}
+all_files_xml
+```
+
+```{r}
+# get the file for tubular goods
+grep(pattern = "tubular", ignore.case = TRUE, value = TRUE, x = all_files_xml)
+```
+
+```{r}
+# get the file for trajectory
+traj_files <- grep(pattern = "trajectory", ignore.case = TRUE, 
+                   value = TRUE, x = all_files_xml)
+traj_files
+```
+
+```{r}
+traj_df <- flatxml::fxml_importXMLFlat(traj_files[1])
+```
+

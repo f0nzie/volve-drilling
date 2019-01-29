@@ -1,0 +1,621 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r}
+# load libraries
+library(xml2)
+library(data.table)
+library(dplyr)
+```
+
+## Retrieve WITSML file
+* Using a relatively small folder of 27 MB.
+* well `Norway-Statoil-NO 15_$47$_9-F-9`
+* only show few of the files with their complete full name
+
+```{r}
+all_files_xml <- list.files("./witsml", recursive = TRUE, full.names = TRUE, 
+                        include.dirs = TRUE, pattern = "*.xml")
+
+# indices in R start at 1, not zero as in Python
+all_files_xml[1:5]
+```
+
+
+```{r}
+# get the file for trajectory
+traj_files <- grep(pattern = "trajectory", ignore.case = TRUE, 
+                   value = TRUE, x = all_files_xml)
+traj_files
+```
+
+## Read the WITSML file
+
+```{r}
+dat <- read_xml(traj_files[1])
+```
+
+```{r}
+# some introspection
+xml_name(dat)
+xml_children(dat)
+
+# name of the child node
+xml_name(xml_children(dat))
+xml_name(xml_child(dat))
+```
+
+## Nodes, children and siblings
+
+```{r}
+# strip default namespaces from the document
+xml_ns_strip( dat )
+dat %>% 
+    xml_find_all( '//*') %>% 
+    xml_path() %>% 
+    .[1:50]                   # show only the first elements
+```
+
+```{r}
+# get the number of elements
+xml_ns_strip( dat )
+noe <- dat %>% 
+    xml_find_all( '//*') %>% 
+    xml_path() %>% 
+    length()
+noe
+```
+
+### `trajectorys` root node
+
+```{r}
+# attributes for the root node
+trajectorys <- xml_find_first( dat, "//trajectorys")
+xml_attrs(trajectorys)
+xml_name(trajectorys)
+xml_siblings(trajectorys)    # no siblings because it is the root
+```
+
+### `trajectory` child
+
+```{r}
+# attributes of the trajectory node
+trajectory <- xml_find_first( dat, "//trajectory")
+xml_attrs(trajectory)
+xml_name(xml_parent(trajectory))
+xml_name(trajectory)
+xml_name(xml_children(trajectory))
+```
+
+### `trajectory` children
+
+```{r}
+# trajectoryStation children nodes
+xml_name(xml_children(xml_find_all(dat, "//trajectorys/trajectory" )))
+```
+
+```{r}
+# number of trajectoryStation children nodes
+length(xml_name(xml_children(xml_find_all(dat, "//trajectorys/trajectory" ))))
+```
+
+```{r}
+# another way of obtaining the names of the nodes for "trajectory"
+xml_name(xml_children(xml_find_first(dat, "//trajectory")))
+```
+
+## `trajectory` childless nodes
+If we know by specification the a node does not have children then we could manually indicate the indices of the names vector.
+
+```{r}
+# name of the orphan nodes
+orphan_vars <- c(1:14)   # indices
+
+# the first 14 children of trajectory
+vars14_names <- xml_name(xml_children(xml_find_first(dat, "//trajectory")))[orphan_vars]
+vars14_names
+```
+
+```{r}
+# get all the nodes under the root
+xml_children(dat) %>%     # trajectory
+    xml_children() %>%    # variables and values of the children
+    xml_name()            # names of the variables only
+```
+
+
+## `//trajectory/trajectoryStation`
+
+```{r}
+# names of the children for "trajectoryStation"
+xml_name(xml_children(xml_find_first( dat, "//trajectory/trajectoryStation")))
+```
+
+This yields the same result:
+
+```{r}
+# names of the nodes for "trajectoryStation"
+xml_name(xml_children(xml_find_first(dat, "//trajectoryStation")))
+```
+
+```{r}
+# find attributes of the first element of trajectoryStation found
+trajectoryStation <- xml_find_first(dat, "//trajectoryStation")
+xml_attrs(x = trajectoryStation)
+```
+
+### number of measurement stations
+
+```{r}
+# find all observations for dTimStn
+trajectoryStation.dTimStn <- xml_find_all(dat, "//trajectoryStation/dTimStn")
+trajectoryStation.dTimStn
+
+# we end up finding a way to calculate the number of trajectory stations
+length(trajectoryStation.dTimStn)
+```
+
+```{r}
+# name of the dependent nodes of "trajectoryStation"
+xml_name(xml_children(xml_find_first(dat, "//trajectoryStation")))
+```
+
+```{r}
+# get the attributes for trajectoryStation
+xml_attrs(x = trajectoryStation)
+
+# we get only the "uid" attribute
+```
+
+```{r}
+# get the value of the attribute we found
+xml_attr(x = trajectoryStation, attr = "uid")
+```
+
+## commonData: names and values
+
+There are two nodes with the same name:
+* `//trajectory/commonData`
+* `//trajectoryStation/commonData`
+
+### //trajectory/commonData
+```{r}
+# get the subnodes for //trajectory/commonData
+unique(xml_name(xml_children(xml_find_all(dat, "//trajectory/commonData"))))
+```
+
+```{r}
+# number of subnodes
+max(xml_length(xml_find_all(dat, "//trajectory/commonData")))
+```
+
+```{r}
+# values for the first macthing node
+xml_text((xml_find_first(dat, "//trajectory/commonData" ) ) )
+```
+
+### //trajectoryStation/commonData
+```{r}
+# get the subnodes for //trajectoryStation/commonData
+unique(xml_name(xml_children(xml_find_all(dat, "//trajectoryStation/commonData" ) ) ))
+```
+
+```{r}
+# number of subnodes for //trajectoryStation/commonData
+# we use max() for the case it returns a vector with multiple nodes and lengths
+max(xml_length(xml_find_all(dat, "//trajectoryStation/commonData")))
+```
+
+```{r}
+# values for the first matching node
+xml_text((xml_find_first(dat, "//trajectoryStation/commonData" ) ) )
+```
+
+# Create the dataframes
+
+## trajectory
+
+```{r}
+# get all attributes for trajectory node
+# we try with datatable and dataframe
+trajectory <- xml_find_first( dat, "//trajectory")
+trajectory <- xml_attrs(trajectory)
+
+trajectory_dt <- data.table(t(trajectory))
+trajectory_dt
+
+trajectory_df <- data.frame(t(trajectory), stringsAsFactors = FALSE)
+trajectory_df
+```
+
+```{r}
+# get all attributes for the trajectory node
+# using magrittr
+xml_find_first( dat, "//trajectory") %>% 
+    xml_attrs() %>% 
+    t() %>% 
+    data.frame(stringsAsFactors = FALSE)
+```
+
+## Siblings of `trajectoryStation`
+
+> Maybe we should try with a different name for `orphan_vars`.
+
+```{r}
+# this is the manual way of obtaining the table
+# values of the orphan nodes
+orphan_vars <- c(1:14)   # indices if we know the specs in advance
+
+vars14_values <- xml_text(xml_children(xml_find_first( dat, "//trajectory")))[orphan_vars]
+names(vars14_values) <- vars14_names
+
+# dataframe and datatable
+orphans_df <- data.frame(t(vars14_values), stringsAsFactors = FALSE)
+orphans_df
+
+orphans_dt <- data.table(t(vars14_values))
+orphans_dt
+```
+
+```{r eval=FALSE}
+# get the names of the siblings of trajectoryStation
+# tS: trajectoryStation
+orphan_vars_ix <- c(1:14)                          # this is not the best solution
+names_siblings_tS <- xml_find_first(dat, "//trajectory") %>% 
+    xml_children() %>% 
+    xml_name() %>% 
+    .[orphan_vars_ix]
+
+names_siblings_tS
+```
+
+```{r}
+# using xml_siblings
+trajectoryStation_names <- xml_name(xml_siblings(xml_find_all(dat, "//trajectoryStation")))
+trajectoryStation_names <- unique(trajectoryStation_names)
+trajectoryStation_names
+```
+
+```{r}
+# we don't want trajectoryStation nor commonData
+not_these_cols <- which(trajectoryStation_names %in% c("trajectoryStation", "commonData"))
+orphan_vars <- trajectoryStation_names[-c(not_these_cols)]
+orphan_vars
+```
+
+
+```{r}
+# get the values for the siblings of trajectory
+values_siblings_tS <- xml_find_first(dat, "//trajectory") %>% 
+    xml_children() %>% 
+    xml_text() %>% 
+    .[which(trajectoryStation_names %in% orphan_vars)]
+
+siblings_tS <- values_siblings_tS
+siblings_tS
+```
+
+
+```{r}
+# assign names to vectors with values
+names(siblings_tS) <- names_siblings_tS
+siblings_tS
+```
+
+```{r}
+# convert the vectors to table
+siblings_dt <- siblings_tS %>% 
+    t() %>% 
+    data.table()
+
+siblings_df <- siblings_tS %>% 
+    t() %>% 
+    data.frame(stringsAsFactors = FALSE)
+
+siblings_dt
+siblings_df
+# siblings_dt replaces orphans_dt
+```
+
+
+## combine trajectory and siblings in a one-row dataframe
+
+```{r}
+cbind(trajectory_dt, siblings_dt)
+cbind(trajectory_df, siblings_df)
+```
+
+
+## trajectoryStation
+
+### dataframe for trajectoryStation, uid
+
+```{r rows.print=25}
+# get values for uid attribute of trajectoryStation
+# these are the well ids
+tS.uid <- dat %>% 
+    xml_find_all("//trajectoryStation") %>% 
+    xml_attr("uid")
+
+tS.uid_dt <- data.table(uid = tS.uid)
+tS.uid_dt
+
+tS.uid_df <- data.frame(uid = tS.uid, stringsAsFactors = FALSE)
+tS.uid_df
+```
+
+```{r rows.print=25}
+# get values for uid attribute of trajectoryStation
+# these are the well ids
+tS.uid <- dat %>% 
+    xml_find_all("//trajectoryStation") %>% 
+    xml_attr("uid")
+tS.uid_df <- data.frame(uid = tS.uid, stringsAsFactors = FALSE)
+tS.uid_df
+```
+
+We could use this method to create a function that finds the number of observations for the `trajectoryStation`:
+
+```{r function-number-tS}
+# get the number of rows for a parent node
+get_numrows_parent_node <- function(xml_dat, parent_node, attribute) {
+    xml_dat %>% 
+    xml_find_all(paste("//", parent_node)) %>%
+    xml_attr("uid") %>%
+    length()
+}
+
+# exercise the function
+parent <- "trajectoryStation"
+attrib <- "uid"
+get_numrows_parent_node(dat, parent, attrib)
+
+```
+
+
+## measurement stations or trajectoryStation
+
+```{r}
+# using xml_children
+# we also get commonData
+trajectoryStation_all_names <- xml_name(xml_children(xml_find_all(dat, 
+                                                            "//trajectoryStation")))
+trajectoryStation_all_names <- unique(trajectoryStation_all_names)
+trajectoryStation_all_names
+```
+
+
+```{r}
+# get the number of columns by name
+# commonData is excluded
+no_commonData <- which(trajectoryStation_all_names %in% c("commonData"))
+
+# get rid of commonData since it has children
+trajectoryStation_names <- trajectoryStation_all_names[-no_commonData] # exclude
+trajectoryStation_names
+```
+
+
+```{r}
+# there are 19 variables under trajectoryStation, not including commonData
+xml_dat <- dat
+node <- "trajectoryStation"
+max_obs <- get_numrows_parent_node(dat, "trajectoryStation", attribute = "uid")
+var_names <- trajectoryStation_names  # names of the variables in a vector
+li_vars <- vector("list")             # vector of list
+for (var in var_names) {              # iterate through all the variables
+    xpath <- paste("//", node, "/", var)  # form the xpath
+    value_xpath <- xml_text(xml_find_all(xml_dat, xpath)) # get all the values
+    vx <- value_xpath                                  # make it a shorter name
+    # if the variables are all not present, add NA. max=25
+    if (length(vx) < max_obs) vx <- c(rep(NA, max_obs - length(vx)), vx)
+    li_vars[[var]] <- vx
+}
+tS_df <- as.data.frame(li_vars, stringsAsFactors = FALSE)
+tS_df
+```
+
+```{r function-get-variables}
+# get the names of variables under a node
+get_variables_under_node <- function(xml_dat, node) {
+    xpath <- paste("//", node)
+    xml_find_all(xml_dat, xpath) %>% 
+    xml_children() %>% 
+    xml_name() %>% 
+    unique()
+}
+
+tS.cD_names <- get_variables_under_node(dat, "trajectoryStation/commonData")
+tS.cD_names
+```
+
+```{r}
+# detect what variables are standalone and which ones have children
+# get variables under trajectoryStation
+var_names <- get_variables_under_node(dat, node = "trajectoryStation")
+node = "trajectoryStation"
+
+for (var in var_names) {
+    xpath <- paste("//", node, "/", var)  
+    num_children <- max(xml_length(xml_find_all(dat, xpath)))
+    cat(var, num_children, "\n")
+}    
+```
+
+
+
+```{r function-nodes_as_df}
+#' Converts children of a node and their values to a dataframe.
+#' Receives a node (do not add '//'), creates a vector with the variables under
+#' the node, iterates through each of the variables, fills uneven rows with NAs.
+#' It will skip a child node that contains children.
+#'
+#' @param xml_dat a xml document
+#' @param node a node of the form "trajectoryStation/dTimStn". No need to add "//"
+#' @param max_obs 
+nodes_as_df <- function(xml_dat, node, max_obs) {
+    li_vars <- vector("list")             # vector of list
+    var_names <- get_variables_under_node(xml_dat, node)
+    for (var in var_names) {              # iterate through all the variables
+        xpath <- paste("//", node, "/", var)  # form the xpath
+        num_children <- max(xml_length(xml_find_all(xml_dat, xpath)))
+        if (num_children == 0) {  # skip if the node has children
+            value_xpath <- xml_text(xml_find_all(xml_dat, xpath)) # get all the values
+            vx <- value_xpath                                  # make it a shorter name
+            # if the variables are all not present, add NA. max=25
+            if (length(vx) < max_obs) vx <- c(rep(NA, max_obs - length(vx)), vx)
+            li_vars[[var]] <- vx
+        }
+    }
+    as.data.frame(li_vars, stringsAsFactors = FALSE)
+}
+
+# using function get_numrows_parent_node()
+num_trajectoryStation <- get_numrows_parent_node(dat, "trajectoryStation", 
+                                                 attribute = "uid")
+tS.trajectoryStation_df <- nodes_as_df(dat, "trajectoryStation", num_trajectoryStation)
+tS.trajectoryStation_df
+```
+
+```{r}
+
+```
+
+
+```{r}
+# exercise the function
+var_names <- trajectoryStation_names    # names of the variables in a vector
+# max_obs <- get_numrows_parent_node(dat, parent, attrib)
+rows_trajectoryStation <- 25  # hard value
+nodes_as_df(dat, "trajectoryStation", rows_trajectoryStation)
+```
+
+```{r eval=FALSE}
+# the function above replaces all these assignments
+# not the best solution
+node <- "trajectoryStation"
+dTimStn <- xml_text( xml_find_all( dat, paste("//", node, "/", "dTimStn")))
+typeTrajStation <- xml_text( xml_find_all( dat, paste("//", node, "/", "typeTrajStation")))
+md <- xml_text(xml_find_all(dat, paste("//", node, "/", "md")))
+tvd <- xml_text(xml_find_all(dat, paste("//", node, "/", "tvd")))
+incl <- xml_text(xml_find_all(dat, paste("//", node, "/", "incl")))
+azi <- xml_text(xml_find_all(dat, paste("//", node, "/", "azi")))
+dispNs <- xml_text(xml_find_all(dat, paste("//", node, "/", "dispNs")))
+dispEw <- xml_text(xml_find_all(dat, paste("//", node, "/", "dispEw")))
+vertSect <- xml_text(xml_find_all(dat, paste("//", node, "/", "vertSect")))
+dls <- xml_text(xml_find_all(dat, paste("//", node, "/", "dls")))
+rateTurn <- xml_text(xml_find_all(dat, paste("//", node, "/", "rateTurn")))
+rateBuild <- xml_text(xml_find_all(dat, paste("//", node, "/", "rateBuild")))
+gravAccelCorUsed <- xml_text(xml_find_all(dat, paste("//", node, "/", "gravAccelCorUsed")))
+magXAxialCorUsed <- xml_text(xml_find_all(dat, paste("//", node, "/", "magXAxialCorUsed")))
+sagCorUsed <- xml_text(xml_find_all(dat, paste("//", node, "/", "sagCorUsed")))
+magDrlstrCorUsed <- xml_text(xml_find_all(dat, paste("//", node, "/", "magDrlstrCorUsed")))
+statusTrajStation <- xml_text(xml_find_all(dat, paste("//", node, "/", "statusTrajStation")))
+corUsed <- xml_text(xml_find_all(dat, paste("//", node, "/", "corUsed")))
+
+tS.trajectoryStation_dt <- data.table(dTimStn, typeTrajStation, md, tvd, incl, azi,
+                                 dispNs, dispEw, vertSect, dls, 
+                                 rateTurn, rateBuild, gravAccelCorUsed, magXAxialCorUsed,
+                                 sagCorUsed, magDrlstrCorUsed, statusTrajStation,
+                                 corUsed
+                                 )
+tS.trajectoryStation_dt
+```
+
+```{r}
+# find children for commonData
+xpath <- "//trajectoryStation/commonData"
+trajectoryStation.cD_names <- xml_name(xml_children(xml_find_all(dat, xpath)))
+trajectoryStation.cD_names <- unique(trajectoryStation.cD_names)
+trajectoryStation.cD_names
+```
+
+```{r}
+# cascading way
+xpath <- "//trajectoryStation/commonData"
+xml_find_all(dat, xpath) %>% 
+    xml_children() %>% 
+    xml_name() %>% 
+    unique()
+```
+
+
+
+```{r}
+# get the nodes under trajectoryStation/commonData
+tS.cD_df <- nodes_as_df(xml_dat, node = "trajectoryStation/commonData", max_obs = 25)
+tS.cD_df
+```
+
+```{r}
+# combine all dataframes to make up trajectoryStation dataframe
+trajectoryStation_df <- cbind(tS.uid_dt, tS_df, tS.cD_df) %>% 
+    select(-commonData)
+trajectoryStation_df
+```
+
+```{r}
+# get the values for the trajectoryStation/commonData variables
+# using function get_numrows_parent_node()
+num_trajectoryStation <- get_numrows_parent_node(dat, "trajectoryStation", 
+                                                 attribute = "uid")
+
+tS.commonData_df <- nodes_as_df(dat, "trajectoryStation/commonData", num_trajectoryStation)
+tS.commonData_df
+```
+
+
+
+```{r eval=FALSE}
+# the function above replaces this manual assignment
+# cD: commonData node under trajectoryStation
+node <- "trajectoryStation/commonData"
+cD.sourceName <- xml_text(xml_find_all(dat, paste("//", node, "/", "sourceName")))
+cD.dTimCreation <- xml_text(xml_find_all(dat, paste("//", node, "/", "dTimCreation")))
+cD.dTimLastChange <- xml_text(xml_find_all(dat, paste("//", node, "/", "dTimLastChange")))
+cD.itemState <- xml_text(xml_find_all(dat, paste("//", node, "/", "itemState")))
+cD.priv_customData <- xml_text(xml_find_all(dat, paste("//", node, "/", "priv_customData")))
+
+tS.commonData_dt <- data.table(sourceName = cD.sourceName,
+                            dTimCreation = cD.dTimCreation,
+                            dTimLastChange = cD.dTimLastChange,
+                            itemState = cD.itemState,
+                            priv_customData = cD.priv_customData
+                            )
+tS.commonData_dt
+```
+
+
+
+```{r eval=FALSE}
+# binding the two dataframes: trajectoryStation, commonData
+cbind(tS.uid_df, tS.trajectoryStation_df, tS.commonData_df)
+```
+
+
+
+# Notes
+
+* For the first row of `trajectoryStation`, which corresponds to the `TIE_POINT`, make all the empty variables (or not present) as NA. The `data.table` function works very well even out those variables that are incomplete but fill them with default values. We see that the  `trajectoryStation` variables are only 10 without counting `commonData`.
+
+* In upcoming versions take care of coercing the variables to their corresponding types. By default, in this example, we've got all the variables as character. Because we know in advance the data types, we could use **R** package `readr` to do that.
+
+* As we get familiar with the WITSML hierarchies, we could start using loops or `apply` functions to convert a tree to a dataframe.
+
+* Functions can be implemented later to get the number of trajectory stations, find which `trajectoryStation` does not have its complete set of variables, or extract a particular trajectory measurement.
+
+* In this example, we used only one well. That's why we obtained only one trajectory file. Other wells could have more than one trajectory file. Later we could implement a function that scans all the folders and generates an statistic of the number of folders and number of files per well.* For the first row of `trajectoryStation`, which corresponds to the `TIE_POINT`, make all the empty variables (or not present) as NA. The `data.table` function works very well even out those variables that are incomplete but fill them with default values. We see that the  `trajectoryStation` variables are only 10 without counting `commonData`.
+
+* In upcoming versions take care of coercing the variables to their corresponding types. By default, in this example, we've got all the variables as character. Because we know in advance the data types, we could use **R** package `readr` to do that.
+
+* As we get familiar with the WITSML hierarchies, we could start using loops or `apply` functions to convert a tree to a dataframe.
+
+* Functions can be implemented later to get the number of trajectory stations, find which `trajectoryStation` does not have its complete set of variables, or extract a particular trajectory measurement.
+
+* In this example, we used only one well. That's why we obtained only one trajectory file. Other wells could have more than one trajectory file. Later we could implement a function that scans all the folders and generates an statistic of the number of folders and number of files per well.
+
+
