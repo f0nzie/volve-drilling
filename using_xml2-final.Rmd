@@ -202,23 +202,40 @@ how_many_children <- function(xml_dat, node) {
   } 
   vars_vector
 }
+```
 
+```{r test-function-how_many_children}
+# test the function how_many_children()
 how_many_children(dat, "trajectory")
 ```
 
-```{r function-have-children}
+> Note that two variables have children or dependents.
+
+### functions `have_children` and `have_no_children`
+
+```{r function-have_children}
+#' Get a vector of those nodes that have children and their count
+#'
+#' @param xml_dat 
+#' @param node 
+#'
 have_children <- function(xml_dat, node) {
   how_many <- how_many_children(xml_dat, node)
   how_many[how_many > 0]
 }
 
+#' Get a vector of those nodes that do not have children and their zero count.
+#'
+#' @param xml_dat 
+#' @param node 
+#'
 have_no_children <- function(xml_dat, node) {
   how_many <- how_many_children(xml_dat, node)
   how_many[how_many == 0]
 }
 ```
 
-### childless nodes
+### test for nodes and dependents
 Now we can easily find what nodes are childless
 
 ```{r find-children-trajectory-childless}
