@@ -1,12 +1,13 @@
 ---
 title: "WITSML Volve - Final"
 output:
-  html_document: 
-    highlight: pygments
+  pdf_document: default
   html_notebook:
     code_folding: none
     highlight: haddock
     theme: united
+  html_document:
+    highlight: pygments
 ---
 
 ```{r setup, include = FALSE, error=TRUE, message=FALSE, warning=FALSE}
@@ -25,6 +26,7 @@ knitr::opts_chunk$set(echo = TRUE,
 library(xml2)
 library(data.table)
 library(dplyr)
+library(tibble)
 ```
 
 ## Retrieve WITSML file
@@ -405,7 +407,6 @@ tS.uid <- dat %>%
 tS.uid_dt <- data.table(uid = tS.uid)
 tS.uid_df <- data.frame(uid = tS.uid, stringsAsFactors = FALSE)
 
-tS.uid_dt
 tS.uid_df
 ```
 
@@ -481,7 +482,7 @@ for (var in var_names) {              # iterate through all the variables
     li_vars[[var]] <- vx
 }
 tS_df <- as.data.frame(li_vars, stringsAsFactors = FALSE)
-tS_df
+tibble(tS_df)
 ```
 
 ```{r function-get-variables}
@@ -537,7 +538,7 @@ nodes_as_df <- function(xml_dat, node, max_obs) {
 num_trajectoryStation <- get_numrows_parent_node(dat, "trajectoryStation", 
                                                  attribute = "uid")
 tS.trajectoryStation_df <- nodes_as_df(dat, "trajectoryStation", num_trajectoryStation)
-tS.trajectoryStation_df
+tibble(tS.trajectoryStation_df)
 ```
 
 
@@ -565,7 +566,7 @@ xml_find_all(dat, xpath) %>%
 ```{r}
 # get the nodes under trajectoryStation/commonData
 tS.cD_df <- nodes_as_df(xml_dat, node = "trajectoryStation/commonData", max_obs = 25)
-tS.cD_df
+tibble(tS.cD_df)
 ```
 
 ### dataframe of combined trajectoryStation
@@ -576,7 +577,7 @@ tS.cD_df
   # tS_df: trajectoryStation data
   # tS.cD_df: commonData
 trajectoryStation_df <- cbind(tS.uid_dt, tS_df, tS.cD_df)
-trajectoryStation_df
+tibble(trajectoryStation_df)
 ```
 
 ```{r}
