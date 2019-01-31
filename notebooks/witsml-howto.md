@@ -39,7 +39,9 @@
 ![1548628508311](img/1548628508311.png)
 
 * Convert xml2 to HDF5 using Python: https://gitlab.idiap.ch/bob/bob/blob/94d2e2a0b68e076bfb6b71596552e7cf873438ca/python/machine/lib/example/xml2hdf5.py
-* 
+* [JWitsml - WITSML access library](https://petroware.no/jwitsml.html)
+
+![Architecture](https://petroware.no/images/architecture2.png)
 
 
 
