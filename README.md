@@ -1,17 +1,19 @@
 # volve-drilling
 
-This is the reproducible version of the article __Exploring drilling data from the Volve dataset with WITSML and R__ that was originally published in [my blog](blog.OilGainsAnalytics.com) on *January 27, 2019*, and in LinkedIn [here](https://www.linkedin.com/pulse/exploring-drilling-data-from-volve-dataset-witsml-r-alfonso-r-reyes/).
+This is the reproducible version of the article __Exploring drilling data from the Volve dataset with WITSML and R__ that was originally published in [my blog](http://blog.OilGainsAnalytics.com) on *January 27, 2019*, and in LinkedIn [here](https://www.linkedin.com/pulse/exploring-drilling-data-from-volve-dataset-witsml-r-alfonso-r-reyes/).
 
 
 In this repository you will find the following assets:
 
-* All the code in a Rmarkdown notebook as running in the [OilGainsAnalytics.com](OilGainsAnalytics.com) blog. That includes the last four plots at the end.
+* All the code in a Rmarkdown notebook as running in the [OilGainsAnalytics.com](http://OilGainsAnalytics.com) blog. That includes the last four plots at the end.
 
-* The Volve drilling datasets for three wells used in the Rmarkdown notebook.
+* The Volve drilling datasets for three wells used in the Rmarkdown notebook. Located under `./witsml`.
 
 * An R script `witsml-trajectory.R` that has functions that allow quickly to convert a WITSML trajectory dataset to a dataframe.
 
-* Images that were inserted in the publication.
+* Two PDF files with documentation about the objects `trajectory` and `trajectoryStation`. Located under `./docs`.
+
+* Images that were inserted in the publication. Located under `./img`
 
 
 ## Links
