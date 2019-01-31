@@ -5,7 +5,7 @@ This is the reproducible version of the article __Exploring drilling data from t
 
 In this repository you will find the following assets:
 
-* All the code in a Rmarkdown notebook as running in the blog. That includes the last four plots at the end.
+* All the code in a Rmarkdown notebook as running in the [OilGainsAnalytics.com](OilGainsAnalytics.com) blog. That includes the last four plots at the end.
 
 * The Volve drilling datasets for three wells used in the Rmarkdown notebook.
 
