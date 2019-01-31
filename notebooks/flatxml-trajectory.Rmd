@@ -1,0 +1,110 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+library(flatxml)
+library(xml2)
+library(data.table)
+library(dplyr)
+```
+
+Using a relatively small folder of 27 MB.
+`Norway-Statoil-NO 15_$47$_9-F-9`
+
+```{r}
+all_files_xml <- list.files("./witsml", recursive = TRUE, full.names = TRUE, 
+                        include.dirs = TRUE, pattern = "*.xml")
+
+# indices in R start at 1, not zero as in Python
+all_files_xml[1:5]
+```
+
+
+```{r}
+# get the file for trajectory
+traj_files <- grep(pattern = "trajectory", ignore.case = TRUE, 
+                   value = TRUE, x = all_files_xml)
+traj_files
+```
+
+```{r}
+xml_filename <- traj_files[1]
+xml_filename
+```
+
+
+```{r}
+dat <- read_xml(xml_filename)
+xml_name(dat)
+```
+
+
+
+```{r}
+df <- fxml_importXMLFlat(xml_filename)
+df
+```
+
+```{r}
+df3 <- fxml_toDataFrame(df, siblings.of=3)
+df3
+```
+
+```{r}
+df2 <- fxml_toDataFrame(df, siblings.of=2, elem.or.attr="elem", col.attr="trajectory")
+df2
+```
+
+```{r}
+# orphan nodes
+orph <- fxml_toDataFrame(df, siblings.of=2, elem.or.attr="elem", 
+                          col.attr="nameWell")
+orph
+```
+
+```{r}
+names(orph)
+```
+
+
+```{r}
+# commonData
+fxml_toDataFrame(df, siblings.of=705, elem.or.attr="elem", col.attr="commonData")
+```
+
+
+```{r}
+# all trajectoryStation members
+tS_df <- fxml_toDataFrame(df, siblings.of=17, elem.or.attr="elem", 
+                          col.attr="trajectoryStation")
+tS_df
+```
+
+```{r}
+fxml_toDataFrame(df, siblings.of=17, elem.or.attr="elem", col.attr = "commonData")
+```
+
+
+
+
+# Example
+
+```{r}
+example <- system.file("worldpopulation.xml", package="flatxml")
+xml.dataframe <- fxml_importXMLFlat(example)
+```
+
+
+```{r}
+population.df <- fxml_toDataFrame(xml.dataframe, siblings.of=3, 
+                                  elem.or.attr="attr", col.attr="name")
+population.df
+```
+
+```{r}
+
+```
+

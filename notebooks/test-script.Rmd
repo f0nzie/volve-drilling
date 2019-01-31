@@ -1,0 +1,143 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(tibble)
+library(purrr)
+library(ggplot2)
+
+source("witsml-trajectory.R", local = TRUE)
+
+all_files_xml <- list.files("./witsml", recursive = TRUE, full.names = TRUE, 
+                        include.dirs = TRUE, pattern = "*.xml")
+
+# Select the trajectory file
+# get the file for trajectory
+traj_files <- grep(pattern = "trajectory", ignore.case = TRUE, 
+                   value = TRUE, x = all_files_xml)
+
+traj_files
+```
+
+```{r rows.print=45}
+well_9f7 <- traj_files[2]
+well_9f9 <- traj_files[3]
+
+well_9f7_df <- convert_witsml_to_df(well_9f7)
+well_9f9_df <- convert_witsml_to_df(well_9f9)
+
+well_9f7_df
+well_9f9_df
+```
+
+
+
+```{r}
+all_wells <- rbind(well_9f7_df, well_9f9_df)
+all_wells
+```
+
+```{r}
+# nest the two well so they show as one row each
+wells_nested <-
+    all_wells %>% 
+    nest(-uid) %>% 
+    print()
+```
+
+If we want, we could add more wells at any time.
+
+```{r rows.print=45}
+# convert WITSML trajectory to dataframe
+well_9f4  <- traj_files[1] 
+well_9f4_df <- convert_witsml_to_df(well_9f4)
+well_9f4_df
+```
+
+```{r}
+# nesting the new well
+nested_9f4 <-
+    well_9f4_df %>% 
+    nest(-uid) %>% 
+    print()
+```
+
+```{r}
+# bind the existing wells with the new one
+wells_nested_3 <- rbind(wells_nested, nested_9f4)
+wells_nested_3
+```
+
+```{r}
+# a simple function to deal with the column data
+get_data <- function(x) {
+    as.double(x$mdMx)
+}
+```
+
+```{r}
+# create the column in the nested dataframe
+op_nested_3 <- wells_nested_3 %>% 
+    mutate(md_max = map(data, get_data)) %>% 
+    print()
+```
+
+```{r rows.print=50}
+# unnest and show the new column
+unnested_3 <- op_nested_3 %>% 
+    unnest(data, md_max) %>% 
+    print()
+```
+
+```{r}
+wells_tall <- 
+    wells_nested_3 %>% 
+    unnest(data) %>% 
+    select(nameWell, md, tvd, incl, azi, rateTurn, rateBuild) %>% 
+    mutate(md = as.double(md), tvd = as.double(tvd), 
+           incl = as.double(incl), azi = as.double(azi),
+           rateTurn = as.double(rateTurn), rateBuild = as.double(rateBuild)) %>% 
+    print()
+```
+
+```{r}
+library(ggplot2)
+ggplot(wells_tall, aes(x = md, y = tvd, color = nameWell)) +
+    geom_line(size=1) +
+    labs(title = "MD vs TVD for three wells")
+```
+
+
+```{r}
+# plot facets of the three wells
+ggplot(wells_tall, aes(x = md, y = tvd, color = nameWell)) +
+    geom_line(size=1) +
+    facet_grid(. ~ nameWell) +
+    labs(title = "MD vs TVD for three wells")
+```
+
+```{r}
+ggplot(wells_tall, aes(x = incl, y = azi, color = nameWell)) +
+    geom_line(size=1) +
+    facet_grid(. ~ nameWell) +
+    labs(title = "Inclination vs Azimuth for three wells")
+```
+
+```{r}
+ggplot(wells_tall, aes(x = tvd, y = rateTurn, color = nameWell)) +
+    geom_line(size=1) +
+    facet_grid(. ~ nameWell) +
+    labs(title = "TVD vs Rate of Turn for three wells")
+```
+
+```{r}
+ggplot(wells_tall, aes(x = tvd, y = rateBuild, color = nameWell)) +
+    geom_line(size=1) +
+    facet_grid(. ~ nameWell) +
+    labs(title = "TVD vs Rate of Build for three wells")
+```

@@ -1,0 +1,180 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+## Siblings of `trajectoryStation`
+
+```{r}
+# get all the trajectory variables, with and without descendants
+trajectory_children <- xml_name(xml_children(xml_find_first(dat, "//trajectory")))
+
+# get only those variables without descendants. hnc: have no children
+traj_hnc_names <- names(have_no_children(dat, "trajectory"))
+traj_hnc_idx <- which(trajectory_children %in% traj_hnc_names)
+
+traj_hnc <- xml_text(xml_children(xml_find_first( dat, "//trajectory")))[traj_hnc_idx]
+names(traj_hnc) <- traj_hnc_names
+traj_hnc
+
+# dataframe and datatable
+orphans_df <- data.frame(t(traj_hnc), stringsAsFactors = FALSE)
+orphans_df
+
+orphans_dt <- data.table(t(traj_hnc))
+orphans_dt
+```
+
+```{r}
+# using xml_siblings() on trajectoryStation
+trajectoryStation_names <- xml_name(xml_siblings(xml_find_all(dat, "//trajectoryStation")))
+trajectoryStation_names <- unique(trajectoryStation_names)
+trajectoryStation_names
+```
+
+```{r}
+# we don't want trajectoryStation nor commonData
+not_these_cols <- which(trajectoryStation_names %in% c("trajectoryStation", "commonData"))
+sibling_vars <- trajectoryStation_names[-c(not_these_cols)]
+sibling_vars
+```
+
+
+```{r}
+# get the values for the siblings of trajectory
+values_siblings_tS <- xml_find_first(dat, "//trajectory") %>% 
+    xml_children() %>% 
+    xml_text() %>% 
+    .[which(trajectoryStation_names %in% orphan_vars)]
+
+siblings_tS <- values_siblings_tS
+siblings_tS
+```
+
+
+```{r}
+# assign names to vectors with values
+names(siblings_tS) <- sibling_vars
+siblings_tS
+```
+
+```{r}
+# convert the vectors to table
+siblings_dt <- siblings_tS %>% 
+    t() %>% 
+    data.table()
+
+siblings_df <- siblings_tS %>% 
+    t() %>% 
+    data.frame(stringsAsFactors = FALSE)
+
+siblings_dt
+siblings_df
+```
+
+```{r}
+identical(siblings_df, orphans_df)
+```
+
+
+
+
+
+```{r detect-standalone-vars}
+# detect what variables are standalone and which ones have children
+# get variables under trajectoryStation
+var_names <- get_variables_under_node(dat, node = "trajectoryStation")
+node = "trajectoryStation"
+
+for (var in var_names) {
+    xpath <- paste("//", node, "/", var)  
+    num_children <- max(xml_length(xml_find_all(dat, xpath)))
+    cat(var, num_children, "\n")
+}    
+```
+
+
+
+```{r}
+# exercise the function
+var_names <- trajectoryStation_names    # names of the variables in a vector
+# max_obs <- get_numrows_parent_node(dat, parent, attrib)
+rows_trajectoryStation <- 25  # hard value
+
+# get a dataframe
+nodes_as_df(dat, "trajectoryStation", rows_trajectoryStation)
+```
+
+```{r eval=FALSE}
+# the function above replaces all these assignments
+# not the best solution
+node <- "trajectoryStation"
+dTimStn <- xml_text( xml_find_all( dat, paste("//", node, "/", "dTimStn")))
+typeTrajStation <- xml_text( xml_find_all( dat, paste("//", node, "/", "typeTrajStation")))
+md <- xml_text(xml_find_all(dat, paste("//", node, "/", "md")))
+tvd <- xml_text(xml_find_all(dat, paste("//", node, "/", "tvd")))
+incl <- xml_text(xml_find_all(dat, paste("//", node, "/", "incl")))
+azi <- xml_text(xml_find_all(dat, paste("//", node, "/", "azi")))
+dispNs <- xml_text(xml_find_all(dat, paste("//", node, "/", "dispNs")))
+dispEw <- xml_text(xml_find_all(dat, paste("//", node, "/", "dispEw")))
+vertSect <- xml_text(xml_find_all(dat, paste("//", node, "/", "vertSect")))
+dls <- xml_text(xml_find_all(dat, paste("//", node, "/", "dls")))
+rateTurn <- xml_text(xml_find_all(dat, paste("//", node, "/", "rateTurn")))
+rateBuild <- xml_text(xml_find_all(dat, paste("//", node, "/", "rateBuild")))
+gravAccelCorUsed <- xml_text(xml_find_all(dat, paste("//", node, "/", "gravAccelCorUsed")))
+magXAxialCorUsed <- xml_text(xml_find_all(dat, paste("//", node, "/", "magXAxialCorUsed")))
+sagCorUsed <- xml_text(xml_find_all(dat, paste("//", node, "/", "sagCorUsed")))
+magDrlstrCorUsed <- xml_text(xml_find_all(dat, paste("//", node, "/", "magDrlstrCorUsed")))
+statusTrajStation <- xml_text(xml_find_all(dat, paste("//", node, "/", "statusTrajStation")))
+corUsed <- xml_text(xml_find_all(dat, paste("//", node, "/", "corUsed")))
+
+tS.trajectoryStation_dt <- data.table(dTimStn, typeTrajStation, md, tvd, incl, azi,
+                                 dispNs, dispEw, vertSect, dls, 
+                                 rateTurn, rateBuild, gravAccelCorUsed, magXAxialCorUsed,
+                                 sagCorUsed, magDrlstrCorUsed, statusTrajStation,
+                                 corUsed
+                                 )
+tS.trajectoryStation_dt
+```
+
+
+
+```{r}
+# get the values for the trajectoryStation/commonData variables
+# using function get_numrows_parent_node()
+num_trajectoryStation <- get_numrows_parent_node(dat, "trajectoryStation", 
+                                                 attribute = "uid")
+
+tS.commonData_df <- nodes_as_df(dat, "trajectoryStation/commonData", num_trajectoryStation)
+tS.commonData_df
+```
+
+
+
+```{r eval=FALSE}
+# the function above replaces this manual assignment
+# cD: commonData node under trajectoryStation
+node <- "trajectoryStation/commonData"
+cD.sourceName <- xml_text(xml_find_all(dat, paste("//", node, "/", "sourceName")))
+cD.dTimCreation <- xml_text(xml_find_all(dat, paste("//", node, "/", "dTimCreation")))
+cD.dTimLastChange <- xml_text(xml_find_all(dat, paste("//", node, "/", "dTimLastChange")))
+cD.itemState <- xml_text(xml_find_all(dat, paste("//", node, "/", "itemState")))
+cD.priv_customData <- xml_text(xml_find_all(dat, paste("//", node, "/", "priv_customData")))
+
+tS.commonData_dt <- data.table(sourceName = cD.sourceName,
+                            dTimCreation = cD.dTimCreation,
+                            dTimLastChange = cD.dTimLastChange,
+                            itemState = cD.itemState,
+                            priv_customData = cD.priv_customData
+                            )
+tS.commonData_dt
+```
+
+
+
+```{r eval=FALSE}
+# binding the two dataframes: trajectoryStation, commonData
+dim(cbind(tS.uid_df, tS.trajectoryStation_df, tS.commonData_df))
+# identical(cbind(tS.uid_df, tS.trajectoryStation_df, tS.commonData_df), trajectoryStation_df)
+names(cbind(tS.uid_df, tS.trajectoryStation_df, tS.commonData_df))
+```
