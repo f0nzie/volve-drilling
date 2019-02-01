@@ -1,0 +1,88 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+Source: https://stackoverflow.com/questions/33446888/r-convert-xml-data-to-data-frame
+
+```{r}
+library(xml2)
+
+pg <- read_xml("http://www.ggobi.org/book/data/olive.xml")
+
+# get all the <record>s
+recs <- xml_find_all(pg, "//record")
+
+# extract and clean all the columns
+vals <- trimws(xml_text(recs))
+
+# extract and clean (if needed) the area names
+labs <- trimws(xml_attr(recs, "label"))
+
+# mine the column names from the two variable descriptions
+# this XPath construct lets us grab either the <categ…> or <real…> tags
+# and then grabs the 'name' attribute of them
+cols <- xml_attr(xml_find_all(pg, "//data/variables/*[self::categoricalvariable or
+                                                      self::realvariable]"), "name")
+
+# this converts each set of <record> columns to a data frame
+# after first converting each row to numeric and assigning
+# names to each column (making it easier to do the matrix to data frame conv)
+dat <- do.call(rbind, lapply(strsplit(vals, "\ +"),
+                                 function(x) {
+                                   data.frame(rbind(setNames(as.numeric(x),cols)))
+                                 }))
+
+# then assign the area name column to the data frame
+dat$area_name <- labs
+
+head(dat)
+##   region area palmitic palmitoleic stearic oleic linoleic linolenic
+## 1      1    1     1075          75     226  7823      672        NA
+## 2      1    1     1088          73     224  7709      781        31
+## 3      1    1      911          54     246  8113      549        31
+## 4      1    1      966          57     240  7952      619        50
+## 5      1    1     1051          67     259  7771      672        50
+## 6      1    1      911          49     268  7924      678        51
+##   arachidic eicosenoic    area_name
+## 1        60         29 North-Apulia
+## 2        61         29 North-Apulia
+## 3        63         29 North-Apulia
+## 4        78         35 North-Apulia
+## 5        80         46 North-Apulia
+## 6        70         44 North-Apulia
+```
+
+```{r}
+xml2::write_xml(pg, file = "olive.xml")
+```
+
+
+```{r list-all-xml-files}
+all_files_xml <- list.files("./witsml", recursive = TRUE, full.names = TRUE, 
+                        include.dirs = TRUE, pattern = "*.xml")
+
+# get the file for trajectory
+traj_files <- grep(pattern = "trajectory", ignore.case = TRUE, 
+                   value = TRUE, x = all_files_xml)
+traj_files
+```
+
+```{r}
+pg <- read_xml(traj_files[3])
+
+xml2::xml_ns_strip(pg)
+# get all the <record>s
+recs <- xml_find_all(pg, "//trajectorys/trajectory")
+
+# extract and clean all the columns
+vals <- trimws(xml_text(recs))
+vals
+```
+
+```{r}
+cols <- xml_attr(xml_find_all(pg, "//trajectorys/*[self::trajectory]"), c("uidWell", "uidWellbore"))
+cols
+```
+
+

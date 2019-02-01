@@ -1,0 +1,110 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+```{r}
+library(xml2)
+library(purrr)
+library(dplyr)
+
+catalog_url <- "http://www.w3schools.com/xml/plant_catalog.xml"
+doc <- read_xml(catalog_url)
+
+# get all the "records"
+plants <- xml_find_all(doc, ".//PLANT")
+
+# get all the field names
+kids <- xml_name(xml_children(plants[1]))
+
+# make a data frame
+# - iterate over each record
+# - in each record grab each field
+# - turn each row into a data frame
+# - bind all the data frames together
+
+map_df(plants, function(plant) {
+  rbind_list(as.list(setNames(map_chr(kids, function(kid) {
+    xml_text(xml_find_one(plant, sprintf(".//%s", kid)))
+  }), kids)))
+})
+
+## Source: local data frame [36 x 6]
+## 
+##                 COMMON              BOTANICAL  ZONE        LIGHT PRICE AVAILABILITY
+##                  (chr)                  (chr) (chr)        (chr) (chr)        (chr)
+## 1            Bloodroot Sanguinaria canadensis     4 Mostly Shady $2.44       031599
+## 2            Columbine   Aquilegia canadensis     3 Mostly Shady $9.37       030699
+## 3       Marsh Marigold       Caltha palustris     4 Mostly Sunny $6.81       051799
+## 4              Cowslip       Caltha palustris     4 Mostly Shady $9.90       030699
+## 5  Dutchman's-Breeches    Dicentra cucullaria     3 Mostly Shady $6.44       012099
+## 6         Ginger, Wild       Asarum canadense     3 Mostly Shady $9.03       041899
+## 7             Hepatica     Hepatica americana     4 Mostly Shady $4.45       012699
+## 8            Liverleaf     Hepatica americana     4 Mostly Shady $3.99       010299
+## 9   Jack-In-The-Pulpit    Arisaema triphyllum     4 Mostly Shady $3.23       020199
+## 10            Mayapple   Podophyllum peltatum     3 Mostly Shady $2.98       060599
+## ..                 ...                    ...   ...          ...   ...          ...
+```
+
+
+
+```{r list-all-xml-files}
+all_files_xml <- list.files("./witsml", recursive = TRUE, full.names = TRUE, 
+                        include.dirs = TRUE, pattern = "*.xml")
+
+# get the file for trajectory
+traj_files <- grep(pattern = "trajectory", ignore.case = TRUE, 
+                   value = TRUE, x = all_files_xml)
+url <- traj_files[3]
+```
+
+
+```{r}
+doc <- read_xml(url)
+```
+
+```{r}
+xml_ns_strip(doc)
+trajectory <- xml_find_all(doc, "//trajectorys/trajectory")
+```
+
+```{r}
+trajectory_children <- xml_name(xml_children(trajectory[1]))
+trajectory_children
+```
+
+```{r}
+lapply(trajectory, function(x) xml_find_first())
+xml_find_first(trajectory_children, sprintf(".//%s", trajectory_children))
+```
+
+
+
+```{r}
+map_df(trajectory, function(traj) {
+    bind_rows(
+        as.list(
+            setNames(
+                map_chr(trajectory_children, function(child) {
+            xml_text(
+                xml_find_first(traj, sprintf(".//%s", child)))
+          }), trajectory_children)
+          )
+    )
+})
+```
+
+```{r}
+lapply(trajectory, function(traj)
+    lapply(trajectory_children, function(x) xml_text(
+        xml_find_first(x, sprintf(".//%s", traj))))
+)
+```
+
+```{r}
+# show nodes under //trajectorys/trajectory
+lapply("//trajectorys/trajectory", function(x) 
+    lapply(trajectory_children, function(y) xml_find_first(doc, paste(x, y, sep = "/"))))
+```
+
