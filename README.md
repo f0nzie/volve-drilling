@@ -15,6 +15,8 @@ In this repository you will find the following assets:
 
 * Images that were inserted in the publication. Located under `./img`
 
+* There are notes on how to convert XML to dataframes under the folder `./notebooks`
+
 
 ## Links
 
